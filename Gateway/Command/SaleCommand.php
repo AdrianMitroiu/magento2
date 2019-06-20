@@ -28,13 +28,13 @@ class SaleCommand implements CommandInterface{
     public function execute(array $commandSubject)
     {
         $this->_logger->info(sprintf("commandSubject: " . print_r($commandSubject,true)));
-        $this->_logger->emergency(sprintf("emergency"));
-        $this->_logger->critical(sprintf("critical"));
-        $this->_logger->alert(sprintf("alert"));
-        $this->_logger->error(sprintf("error"));
-        $this->_logger->warning(sprintf("warning"));
-        $this->_logger->notice(sprintf("notice"));
-        $this->_logger->debug(sprintf("debug"));
+        $this->_logger->emergency("twispay_emergency");
+        $this->_logger->critical("twispay_critical");
+        $this->_logger->alert("twispay_alert");
+        $this->_logger->error("twispay_error");
+        $this->_logger->warning("twispay_warning");
+        $this->_logger->notice("twispay_notice");
+        $this->_logger->debug("twispay_debug");
 
         /** @var double $amount */
         $amount = $commandSubject['amount'];

@@ -29,6 +29,13 @@ class DataBuilder implements BuilderInterface
      */
     public function build()
     {
+        $this->_logger->emergency("twispay_emergency_builder");
+        $this->_logger->critical("twispay_critical_builder");
+        $this->_logger->alert("twispay_alert_builder");
+        $this->_logger->error("twispay_error_builder");
+        $this->_logger->warning("twispay_warning_builder");
+        $this->_logger->notice("twispay_notice_builder");
+        $this->_logger->debug("twispay_debug_builder");
         return [];
     }
 }
