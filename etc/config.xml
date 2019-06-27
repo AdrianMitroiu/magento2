@@ -1,38 +1,36 @@
 <?xml version="1.0"?>
 <!--
 /**
- * Twispay_Payments default configuration
- *
- * @category    Twispay
- * @package     Twispay_Payments
- * @author      Webliant Software
+ * Copyright © 2016 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:module:Magento_Store:etc/config.xsd">
     <default>
         <payment>
-            <twispay>
-                <active>1</active>
-                <title>Twispay</title>
-                <payment_action>authorize_capture</payment_action>
-                <order_type>purchase</order_type>
-                <card_transaction_mode>authAndCapture</card_transaction_mode>
-                <live_api_key backend_model="Magento\Config\Model\Config\Backend\Encrypted"/>
-                <test_api_key backend_model="Magento\Config\Model\Config\Backend\Encrypted"/>
-                <live_redirect_url>https://secure.twispay.com</live_redirect_url>
-                <test_redirect_url>https://secure-stage.twispay.com</test_redirect_url>
-                <back_url>twispay/checkout/backpayment</back_url>
-                <model>Twispay\Payments\Model\Twispay</model>
-                <group>offline</group>
-                <is_gateway>1</is_gateway>
-                <can_use_checkout>1</can_use_checkout>
+            <sample_gateway>
+              <title>Twispay</title>
+              <active>1</active>
+              <model>Twispay\Payments\Model\Twispay</model>
+              
+                <debug>1</debug>
+                <active>0</active>
+                <model>SamplePaymentGatewayFacade</model>
+                <merchant_gateway_key backend_model="Magento\Config\Model\Config\Backend\Encrypted" />
+                <order_status>pending_payment</order_status>
+                <payment_action>authorize</payment_action>
+                
+                <currency>USD</currency>
                 <can_authorize>1</can_authorize>
                 <can_capture>1</can_capture>
-                <can_use_internal>0</can_use_internal>
-                <can_refund>1</can_refund>
-                <order_status>processing</order_status>
-            </twispay>
+                <can_void>1</can_void>
+                <can_use_checkout>1</can_use_checkout>
+                <is_gateway>1</is_gateway>
+                <sort_order>1</sort_order>
+                <debugReplaceKeys>MERCHANT_KEY</debugReplaceKeys>
+                <paymentInfoKeys>FRAUD_MSG_LIST</paymentInfoKeys>
+                <privateInfoKeys>FRAUD_MSG_LIST</privateInfoKeys>
+            </sample_gateway>
         </payment>
     </default>
 </config>
