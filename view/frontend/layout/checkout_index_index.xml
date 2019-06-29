@@ -1,16 +1,13 @@
 <?xml version="1.0"?>
 <!--
 /**
- * Twispay payment method model
- *
- * @category    Twispay
- * @package     Twispay_Payments
- * @author      Webliant Software
+ * Copyright © 2016 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 -->
 <page xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" layout="1column" xsi:noNamespaceSchemaLocation="urn:magento:framework:View/Layout/etc/page_configuration.xsd">
     <head>
-        <css src="Twispay_Payments::css/twispay.css"/>
+        <css src="Twispay_PaymentGateway::css/twispay.css"/>
     </head>
     <body>
         <referenceBlock name="checkout.root">
@@ -28,10 +25,10 @@
                                                     <item name="children" xsi:type="array">
                                                         <item name="renders" xsi:type="array">
                                                             <item name="children" xsi:type="array">
-                                                                <item name="twispay-payments" xsi:type="array">
-                                                                    <item name="component" xsi:type="string">Twispay_Payments/js/view/payment/twispay</item>
+                                                                <item name="twispay_gateway" xsi:type="array">
+                                                                    <item name="component" xsi:type="string">Twispay_PaymentGateway/js/view/payment/twispay_gateway</item>
                                                                     <item name="methods" xsi:type="array">
-                                                                        <item name="twispay" xsi:type="array">
+                                                                        <item name="twispay_gateway" xsi:type="array">
                                                                             <item name="isBillingAddressRequired" xsi:type="boolean">true</item>
                                                                         </item>
                                                                     </item>

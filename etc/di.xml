@@ -1,41 +1,143 @@
 <?xml version="1.0"?>
 <!--
 /**
- * Twispay Payments dependency injection configuration
- *
- * @category    Twispay
- * @package     Twispay_Payments
- * @author      Webliant Software
+ * Copyright © 2016 Magento. All rights reserved.
+ * See COPYING.txt for license details.
  */
 -->
-<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-        xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
-    <preference for="Twispay\Payments\Api\TwispayPaymentDetailsInterface"
-                type="Twispay\Payments\Service\V1\TwispayPaymentDetails"/>
-    <preference for="Twispay\Payments\Api\GuestTwispayPaymentDetailsInterface"
-                type="Twispay\Payments\Service\V1\GuestTwispayPaymentDetails"/>
-    <preference for="Twispay\Payments\Api\Data\OrderPaymentResponseInterface"
-                type="Twispay\Payments\Service\V1\Data\OrderPaymentResponse"/>
 
-    <type name="Twispay\Payments\Logger\Handler">
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="urn:magento:framework:ObjectManager/etc/config.xsd">
+    <!-- Payment Method Facade configuration -->
+    <virtualType name="PaymentGatewayFacade" type="Magento\Payment\Model\Method\Adapter">
         <arguments>
-            <argument name="filesystem" xsi:type="object">Magento\Framework\Filesystem\Driver\File</argument>
+            <argument name="code" xsi:type="const">\Twispay\PaymentGateway\Model\Ui\ConfigProvider::CODE</argument>
+            <argument name="formBlockType" xsi:type="string">Magento\Payment\Block\Form</argument>
+            <argument name="infoBlockType" xsi:type="string">Twispay\PaymentGateway\Block\Info</argument>
+            <argument name="valueHandlerPool" xsi:type="object">PaymentGatewayValueHandlerPool</argument>
+            <argument name="commandPool" xsi:type="object">PaymentGatewayCommandPool</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Configuration reader -->
+    <virtualType name="PaymentGatewayConfig" type="Magento\Payment\Gateway\Config\Config">
+        <arguments>
+            <argument name="methodCode" xsi:type="const">\Twispay\PaymentGateway\Model\Ui\ConfigProvider::CODE</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Logger, initialized with PaymentGatewayConfig -->
+    <virtualType name="PaymentGatewayLogger" type="Magento\Payment\Model\Method\Logger">
+        <arguments>
+            <argument name="config" xsi:type="object">PaymentGatewayConfig</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Twispay\PaymentGateway\Gateway\Http\Client\ClientMock">
+        <arguments>
+            <argument name="logger" xsi:type="object">PaymentGatewayLogger</argument>
         </arguments>
     </type>
 
-    <type name="Twispay\Payments\Logger\Logger">
+    <!-- Commands infrastructure -->
+    <virtualType name="PaymentGatewayCommandPool" type="Magento\Payment\Gateway\Command\CommandPool">
         <arguments>
-            <argument name="name" xsi:type="string">twispayLogger</argument>
-            <argument name="handlers" xsi:type="array">
-                <item name="system" xsi:type="object">Twispay\Payments\Logger\Handler</item>
+            <argument name="commands" xsi:type="array">
+                <item name="authorize" xsi:type="string">PaymentGatewayAuthorizeCommand</item>
+                <item name="capture" xsi:type="string">PaymentGatewayCaptureCommand</item>
+                <item name="void" xsi:type="string">PaymentGatewayVoidCommand</item>
             </argument>
         </arguments>
+    </virtualType>
+
+    <!-- Authorize command -->
+    <virtualType name="PaymentGatewayAuthorizeCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">PaymentGatewayAuthorizationRequest</argument>
+            <argument name="handler" xsi:type="object">PaymentGatewayResponseHandlerComposite</argument>
+            <argument name="transferFactory" xsi:type="object">Twispay\PaymentGateway\Gateway\Http\TransferFactory</argument>
+            <argument name="client" xsi:type="object">Twispay\PaymentGateway\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Authorization Request -->
+    <virtualType name="PaymentGatewayAuthorizationRequest" type="Magento\Payment\Gateway\Request\BuilderComposite">
+        <arguments>
+            <argument name="builders" xsi:type="array">
+                <item name="transaction" xsi:type="string">Twispay\PaymentGateway\Gateway\Request\AuthorizationRequest</item>
+                <item name="mockData" xsi:type="string">Twispay\PaymentGateway\Gateway\Request\MockDataRequest</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <type name="Twispay\PaymentGateway\Gateway\Request\AuthorizationRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">PaymentGatewayConfig</argument>
+        </arguments>
     </type>
 
-    <type name="Magento\Checkout\Api\GuestPaymentInformationManagementInterface">
-        <plugin name="beforeSavePaymentInformationAndPlaceOrderGuest" type="Twispay\Payments\Plugin\GuestPaymentInformationManagement" />
+    <!-- Capture command -->
+    <virtualType name="PaymentGatewayCaptureCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">Twispay\PaymentGateway\Gateway\Request\CaptureRequest</argument>
+            <argument name="handler" xsi:type="object">Twispay\PaymentGateway\Gateway\Response\TxnIdHandler</argument>
+            <argument name="transferFactory" xsi:type="object">Twispay\PaymentGateway\Gateway\Http\TransferFactory</argument>
+            <argument name="validator" xsi:type="object">Twispay\PaymentGateway\Gateway\Validator\ResponseCodeValidator</argument>
+            <argument name="client" xsi:type="object">Twispay\PaymentGateway\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Capture Request -->
+    <type name="Twispay\PaymentGateway\Gateway\Request\CaptureRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">PaymentGatewayConfig</argument>
+        </arguments>
     </type>
-    <type name="Magento\Checkout\Api\PaymentInformationManagementInterface">
-        <plugin name="beforeSavePaymentInformationAndPlaceOrderGuest" type="Twispay\Payments\Plugin\PaymentInformationManagement" />
+
+    <!-- Void command -->
+    <virtualType name="PaymentGatewayVoidCommand" type="Magento\Payment\Gateway\Command\GatewayCommand">
+        <arguments>
+            <argument name="requestBuilder" xsi:type="object">Twispay\PaymentGateway\Gateway\Request\VoidRequest</argument>
+            <argument name="handler" xsi:type="object">Twispay\PaymentGateway\Gateway\Response\TxnIdHandler</argument>
+            <argument name="transferFactory" xsi:type="object">Twispay\PaymentGateway\Gateway\Http\TransferFactory</argument>
+            <argument name="validator" xsi:type="object">Twispay\PaymentGateway\Gateway\Validator\ResponseCodeValidator</argument>
+            <argument name="client" xsi:type="object">Twispay\PaymentGateway\Gateway\Http\Client\ClientMock</argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Void Request -->
+    <type name="Twispay\PaymentGateway\Gateway\Request\VoidRequest">
+        <arguments>
+            <argument name="config" xsi:type="object">PaymentGatewayConfig</argument>
+        </arguments>
     </type>
+
+    <!-- Response handlers -->
+    <virtualType name="PaymentGatewayResponseHandlerComposite" type="Magento\Payment\Gateway\Response\HandlerChain">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="txnid" xsi:type="string">Twispay\PaymentGateway\Gateway\Response\TxnIdHandler</item>
+                <item name="fraud" xsi:type="string">Twispay\PaymentGateway\Gateway\Response\FraudHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+
+    <!-- Value handlers infrastructure -->
+    <virtualType name="PaymentGatewayValueHandlerPool" type="Magento\Payment\Gateway\Config\ValueHandlerPool">
+        <arguments>
+            <argument name="handlers" xsi:type="array">
+                <item name="default" xsi:type="string">PaymentGatewayConfigValueHandler</item>
+            </argument>
+        </arguments>
+    </virtualType>
+    <virtualType name="PaymentGatewayConfigValueHandler" type="Magento\Payment\Gateway\Config\ConfigValueHandler">
+        <arguments>
+            <argument name="configInterface" xsi:type="object">PaymentGatewayConfig</argument>
+        </arguments>
+    </virtualType>
+
+    <type name="Twispay\PaymentGateway\Block\Info">
+        <arguments>
+            <argument name="config" xsi:type="object">PaymentGatewayConfig</argument>
+        </arguments>
+    </type>
+
 </config>
