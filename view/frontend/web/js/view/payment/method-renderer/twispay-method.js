@@ -40,24 +40,33 @@ define(
             redirectAfterPlaceOrder: false,
 
             placeOrder: function (data, event) {
+                console.log('palceOrder function');
                 var self = this;
 
                 if (event) {
                     event.preventDefault();
+                    console.log('palceOrder inside event');
                 }
 
                 if (this.validate() && additionalValidators.validate()) {
+                    console.log('palceOrder after if validate');
                     this.isPlaceOrderActionAllowed(false);
 
+                    console.log('palceOrder before this get place order');
                     this.getPlaceOrderDeferredObject()
                         .fail(
                             function () {
+                                console.log('palceOrder inside fail before self');
                                 self.isPlaceOrderActionAllowed(true);
+                                console.log('palceOrder inside fail after self');
                             }
                         ).done(
                             function (response) {
+                                console.log('palceOrder inside done before self');
                                 var data = JSON.parse(response);
                                 self.redirectToGateway(data);
+                                console.log('palceOrder inside done after self');
+                                console.log($data);
                             }
                         );
 
@@ -72,6 +81,8 @@ define(
              * @param data
              */
             redirectToGateway: function (params) {
+                console.log("redirect to gateway params: ");
+                console.log(params);
                 var form = document.createElement("form");
                 form.setAttribute("id", "twispayForm");
                 form.setAttribute("method", "post");
