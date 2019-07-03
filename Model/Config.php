@@ -15,19 +15,19 @@ class Config
         $this->scopeConfigInterface = $configInterface;
     }
 
-    public function getApiKey()
-    {
-        if ($this->isDebugMode()) {
-            return $this->getConfigValue('test_api_key');
-        } else {
-            return $this->getConfigValue('live_api_key');
-        }
-    }
+    // public function getApiKey()
+    // {
+    //     if ($this->isDebugMode()) {
+    //         return $this->getConfigValue('test_api_key');
+    //     } else {
+    //         return $this->getConfigValue('live_api_key');
+    //     }
+    // }
 
-    public function getSiteId()
-    {
-        return $this->getConfigValue('site_id');
-    }
+    // public function getSiteId()
+    // {
+    //     return $this->getConfigValue('site_id');
+    // }
 
     public function isDebugMode()
     {
@@ -53,15 +53,15 @@ class Config
         return $this->getConfigValue('success_page');
     }
 
-    public function getOrderType()
-    {
-        return $this->getConfigValue('order_type');
-    }
+    // public function getOrderType()
+    // {
+    //     return $this->getConfigValue('order_type');
+    // }
 
-    public function getCardTransactionMode()
-    {
-        return $this->getConfigValue('card_transaction_mode');
-    }
+    // public function getCardTransactionMode()
+    // {
+    //     return $this->getConfigValue('card_transaction_mode');
+    // }
 
     public function isEmailInvoice()
     {
@@ -72,4 +72,28 @@ class Config
     {
         return $this->scopeConfigInterface->getValue('payment/twispay/' . $value);
     }
+
+
+    /** NEW IMPLEMENTATION */
+    public function getLiveMode(){
+        return $this->getConfigValue('live_mode');
+    }
+
+    public function getStagingSiteId(){
+        return $this->getConfigValue('staging_site_id');
+    }
+
+    public function getStagingPrivateId(){
+        return $this->getConfigValue('staging_private_id');
+    }
+
+    public function getLiveSiteId(){
+        return $this->getConfigValue('live_site_id');
+    }
+
+    public function getLivePrivateId(){
+        return $this->getConfigValue('live_private_id');
+    }
+
+
 }

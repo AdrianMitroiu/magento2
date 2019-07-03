@@ -28,7 +28,10 @@
                 <email_invoice>0</email_invoice>
                 <live_redirect_url>https://secure.twispay.com</live_redirect_url>
                 <test_redirect_url>https://secure-stage.twispay.com</test_redirect_url>
+                <back_url>twispay/checkout/backpayment</back_url>
             </twispay>
         </payment>
     </default>
 </config>
+
+
