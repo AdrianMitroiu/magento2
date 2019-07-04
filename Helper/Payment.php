@@ -160,9 +160,8 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
         /** NEW IMPLEMENTATION STARTS */
         // Get the details of the last order
         /** @var \Magento\Sales\Model\Order $order */
-        //$this->log->debug($orderId);
+        $this->log->info('prepare Gateway Request order ID: ', [$orderId]);
         $order = $this->orderRepository->get($orderId);
-        //$this->log->debug($order);
 
         // Set the status of this order to pending payment
         $order->setState(Order::STATE_PENDING_PAYMENT, true);
@@ -170,46 +169,50 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
         $order->addStatusToHistory($order->getStatus(), __('Redirecting to Twispay payment gateway'));
         $order->save();
 
+        //$this->log->info('prepareGatewayRequest order: ', [print_r($order->debug(), TRUE)]);
+
         /** Get billing details. */
-        $billingDetails = $order->getBillingAddress();
+        $billingAddress = $order->getBillingAddress();
+        $shippingAdress = $order->getShippingAddress();
 
         /** Get the Site ID and Private Key depending on Live Mode value. */
-        $siteID = '';
+        $siteId = '';
         $secretKey = '';
-        if($this->config){
-            if( 1 == $this->config->getLiveMode()){
-                $siteID = $this->config->getLiveSiteId();
-                $secretKey = $this->config->getLivePrivateId();
-            } elseif( 0 == $this->config->getLiveMode() ) {
-                $siteID = $this->config->getStagingSiteId();
-                $secretKey = $this->config->getStagingPrivateId();
-            } else {
-                /** TODO error */
-            }
+        if( 1 == $this->config->getLiveMode()){
+            $siteId = $this->config->getLiveSiteId();
+            $this->log->info('prepareGatewayRequest live site ID: ', [$siteId]);
+            $secretKey = $this->config->getLivePrivateId();
+            $this->log->info('prepareGatewayRequest live secret key: ', [$secretKey]);
+        } elseif( 0 == $this->config->getLiveMode() ) {
+            $siteId = $this->config->getStagingSiteId();
+            $this->log->info('prepareGatewayRequest staging site ID: ', [$siteId]);
+            $secretKey = $this->config->getStagingPrivateId();
+            $this->log->info('prepareGatewayRequest staging secret key: ', [$secretKey]);
+        } else {
+            /** TODO error */
         }
-
 
         /** Get customer details. */
         $customer = [
-            'identifier' => $isGuestCustomer ? $billingDetails->getEmail() : '_' . $billingDetails->getCustomerId(),
-            'firstName' => $billingDetails->getFirstname() != null ? $billingDetails->getFirstname() : '',
-            'lastName' => $billingDetails->getLastname() != null ? $billingDetails->getLastname() : '',
-            'country' => $billingDetails->getCountryId() != null ? $billingDetails->getCountryId() : '',
-            /** 'state' => ( ($billingDetails->getCountryId() == 'US' && $billingDetails->getRegionCode() != null) ? $billingDetails->getRegionCode() : ''), */
-            'city' => $billingDetails->getCity() != null ? $billingDetails->getCity() : '',
-            'address' => $billingDetails->getStreet() != null ? join(',', $billingDetails->getStreet()) : '',
-            'zipCode' => ($billingDetails->getPostcode() != null ? preg_replace("/[^0-9]/", '', $billingDetails->getPostcode()) : ''),
-            'phone' => ($billingDetails->getTelephone() != null ? preg_replace("/[^0-9\+]/", '', $billingDetails->getTelephone()) : ''),
-            'email' => $billingDetails->getEmail() != null ? $billingDetails->getEmail() : ''
+            'identifier' => ( $isGuestCustomer ) ? ( '_' .$orderId . '_' . date('YmdHis') ) : ( '_' . $billingAddress->getCustomerId() ),
+            'firstName' => ( $billingAddress->getFirstname() != null ) ? ( $billingAddress->getFirstname() ) : ( $shippingAdress->getFirstname() ),
+            'lastName' => ( $billingAddress->getLastname() != null ) ? ( $billingAddress->getLastname() ) : ( $shippingAdress->getLastname() ),
+            'country' => ( $billingAddress->getCountryId() != null ) ? ( $billingAddress->getCountryId() ) : ( $shippingAdress->getCountryId() ),
+            /** 'state' => ( ($billingAddress->getCountryId() == 'US') && ($billingAddress->getRegionCode() != null) ) ? ( $billingAddress->getRegionCode() ) : ( $shippingAdress->getRegionCode() ), */
+            'city' => ( $billingAddress->getCity() != null ) ? ( $billingAddress->getCity() ) : ( $shippingAdress->getCity() ),
+            'address' => ( $billingAddress->getStreet() != null ) ? ( join(',', $billingAddress->getStreet()) )  : ( join(',', $shippingAdress->getStreet()) ),
+            'zipCode' => ( $billingAddress->getPostcode() != null ) ? ( preg_replace("/[^0-9]/", '', $billingAddress->getPostcode()) ) : ( preg_replace("/[^0-9]/", '', $shippingAdress->getPostcode()) ),
+            'phone' => ( $billingAddress->getTelephone() != null ) ? ( preg_replace("/[^0-9\+]/", '', $billingAddress->getTelephone()) ) : ( preg_replace("/[^0-9\+]/", '', $shippingAdress->getTelephone()) ),
+            'email' => ( $billingAddress->getEmail() != null ) ? ( $billingAddress->getEmail() ) : ( $shippingAdress->getEmail() )
         ];
 
         /** Extract the items details */
         $items = array();
-        foreach( $order->getShippingAmount() as $item){
+        foreach( $order->getAllVisibleItems() as $item){
             $items[] = [
                 'item' => $item->getName(),
                 'units' => $item->getQtyOrdered(),
-                'unitPrice' => (string)number_format( (float)$item->getPriceInclTax(), 2, '.', '')
+                'unitPrice' => number_format( (float)$item->getPriceInclTax(), 2)
             ];
         }
 
@@ -220,12 +223,12 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
         //$backUrl .= (FALSE == strpos($backUrl, '?')) ? ('?secure_key=' . $data['cart_hash']) : ('&secure_key=' . $data['cart_hash']);
 
         $orderData = [
-            'siteId' => $siteID,
+            'siteId' => $siteId,
             'customer' => $customer,
             'order' => [
                 'orderId' => $orderId,
                 'type' => 'purchase',
-                'amount' => (string)number_format( (float)$order->getGrandTotal(), 2, '.', ''),
+                'amount' => $order->getGrandTotal(),
                 'currency' => $order->getOrderCurrencyCode(),
                 'items' => $items
             ],
@@ -234,10 +237,12 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
             'backUrl' => $this->getBackUrl() /** TO CHECK how is build */
         ];
 
+
+        $this->log->info('prepareGatewayRequest orderData: ', [print_r($orderData, TRUE)]);
         /** Build the HTML form to be posted in Twispay */
         $base64JsonRequest = $this->getBase64JsonRequest($orderData);
         $base64Checksum = $this->getBase64Checksum($orderData, $secretKey);
-        $hostName = ($this->config && (1 == $this->config->getLiveMode())) ? ('https://secure.twispay.com' . '?lang=' . $lang) : ('https://secure-stage.twispay.com' . '?lang=' . $lang);
+        //$hostName = ($this->config && (1 == $this->config->getLiveMode())) ? ('https://secure.twispay.com' . '?lang=' . $lang) : ('https://secure-stage.twispay.com' . '?lang=' . $lang);
 
         /** NEW IMPLEMENTATION ENDS */
 
