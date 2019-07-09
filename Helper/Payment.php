@@ -159,7 +159,6 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
     {
         // Get the details of the last order
         /** @var \Magento\Sales\Model\Order $order */
-        //LOGS $this->log->info('prepare Gateway Request order ID: ', [$orderId]);
         $order = $this->orderRepository->get($orderId);
 
         // Set the status of this order to pending payment
@@ -167,8 +166,6 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
         $order->setStatus(Order::STATE_PENDING_PAYMENT);
         $order->addStatusToHistory($order->getStatus(), __('Redirecting to Twispay payment gateway'));
         $order->save();
-
-        //LOGS $this->log->info('prepareGatewayRequest order: ', [print_r($order->debug(), TRUE)]);
 
         /** Get billing details. */
         $billingAddress = $order->getBillingAddress();
@@ -179,14 +176,10 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
         $secretKey = '';
         if( 1 == $this->config->getLiveMode()){
             $siteId = $this->config->getLiveSiteId();
-            //LOGS $this->log->info('prepareGatewayRequest live site ID: ', [$siteId]);
             $secretKey = $this->config->getLivePrivateId();
-            //LOGS $this->log->info('prepareGatewayRequest live secret key: ', [$secretKey]);
         } elseif( 0 == $this->config->getLiveMode() ) {
             $siteId = $this->config->getStagingSiteId();
-            //LOGS $this->log->info('prepareGatewayRequest staging site ID: ', [$siteId]);
             $secretKey = $this->config->getStagingPrivateId();
-            //LOGS $this->log->info('prepareGatewayRequest staging secret key: ', [$secretKey]);
         } else {
             /** TODO error */
         }
@@ -218,12 +211,7 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
                       ];
         }
 
-        /* Calculate the backUrl through which the server will provide the status of the order.
-         *** TODO ***
-         * $backUrl = get_permalink( get_page_by_path( 'twispay-confirmation' ) );
-         * $backUrl .= (FALSE == strpos($backUrl, '?')) ? ('?secure_key=' . $data['cart_hash']) : ('&secure_key=' . $data['cart_hash']);
-         */
-
+        /** Create orderData array to be base64 converted */
         $orderData =  [ 'siteId' => $siteId
                       , 'customer' => $customer
                       , 'order' =>  [ 'orderId' => $orderId
@@ -254,16 +242,12 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
                       /* , 'customData' => [] */
                       ];
 
-        $this->log->info('prepareGatewayRequest orderData: ', [print_r($orderData, TRUE)]);
         /** Build the HTML form to be posted in Twispay */
         $base64JsonRequest = $this->getBase64JsonRequest($orderData);
         $base64Checksum = $this->getBase64Checksum($orderData, $secretKey);
-
         return $formInputsValues = [ 'jsonRequest' => $base64JsonRequest
                                   , 'checksum' => $base64Checksum
                                   ];
-        //LOGS $this->log->info('base64JsonRequest: ', [$base64JsonRequest]);
-        //LOGS $this->log->info('base64Checksum', [$base64Checksum]);
     }
 
     /**
