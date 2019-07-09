@@ -157,10 +157,9 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
      */
     public function prepareGatewayRequest($orderId, $isGuestCustomer)
     {
-        /** NEW IMPLEMENTATION STARTS */
         // Get the details of the last order
         /** @var \Magento\Sales\Model\Order $order */
-        $this->log->info('prepare Gateway Request order ID: ', [$orderId]);
+        //LOGS $this->log->info('prepare Gateway Request order ID: ', [$orderId]);
         $order = $this->orderRepository->get($orderId);
 
         // Set the status of this order to pending payment
@@ -169,7 +168,7 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
         $order->addStatusToHistory($order->getStatus(), __('Redirecting to Twispay payment gateway'));
         $order->save();
 
-        //$this->log->info('prepareGatewayRequest order: ', [print_r($order->debug(), TRUE)]);
+        //LOGS $this->log->info('prepareGatewayRequest order: ', [print_r($order->debug(), TRUE)]);
 
         /** Get billing details. */
         $billingAddress = $order->getBillingAddress();
@@ -180,72 +179,91 @@ class Payment extends \Magento\Framework\App\Helper\AbstractHelper
         $secretKey = '';
         if( 1 == $this->config->getLiveMode()){
             $siteId = $this->config->getLiveSiteId();
-            $this->log->info('prepareGatewayRequest live site ID: ', [$siteId]);
+            //LOGS $this->log->info('prepareGatewayRequest live site ID: ', [$siteId]);
             $secretKey = $this->config->getLivePrivateId();
-            $this->log->info('prepareGatewayRequest live secret key: ', [$secretKey]);
+            //LOGS $this->log->info('prepareGatewayRequest live secret key: ', [$secretKey]);
         } elseif( 0 == $this->config->getLiveMode() ) {
             $siteId = $this->config->getStagingSiteId();
-            $this->log->info('prepareGatewayRequest staging site ID: ', [$siteId]);
+            //LOGS $this->log->info('prepareGatewayRequest staging site ID: ', [$siteId]);
             $secretKey = $this->config->getStagingPrivateId();
-            $this->log->info('prepareGatewayRequest staging secret key: ', [$secretKey]);
+            //LOGS $this->log->info('prepareGatewayRequest staging secret key: ', [$secretKey]);
         } else {
             /** TODO error */
         }
 
         /** Get customer details. */
-        $customer = [
-            'identifier' => ( $isGuestCustomer ) ? ( '_' .$orderId . '_' . date('YmdHis') ) : ( '_' . $billingAddress->getCustomerId() ),
-            'firstName' => ( $billingAddress->getFirstname() != null ) ? ( $billingAddress->getFirstname() ) : ( $shippingAdress->getFirstname() ),
-            'lastName' => ( $billingAddress->getLastname() != null ) ? ( $billingAddress->getLastname() ) : ( $shippingAdress->getLastname() ),
-            'country' => ( $billingAddress->getCountryId() != null ) ? ( $billingAddress->getCountryId() ) : ( $shippingAdress->getCountryId() ),
-            /** 'state' => ( ($billingAddress->getCountryId() == 'US') && ($billingAddress->getRegionCode() != null) ) ? ( $billingAddress->getRegionCode() ) : ( $shippingAdress->getRegionCode() ), */
-            'city' => ( $billingAddress->getCity() != null ) ? ( $billingAddress->getCity() ) : ( $shippingAdress->getCity() ),
-            'address' => ( $billingAddress->getStreet() != null ) ? ( join(',', $billingAddress->getStreet()) )  : ( join(',', $shippingAdress->getStreet()) ),
-            'zipCode' => ( $billingAddress->getPostcode() != null ) ? ( preg_replace("/[^0-9]/", '', $billingAddress->getPostcode()) ) : ( preg_replace("/[^0-9]/", '', $shippingAdress->getPostcode()) ),
-            'phone' => ( $billingAddress->getTelephone() != null ) ? ( preg_replace("/[^0-9\+]/", '', $billingAddress->getTelephone()) ) : ( preg_replace("/[^0-9\+]/", '', $shippingAdress->getTelephone()) ),
-            'email' => ( $billingAddress->getEmail() != null ) ? ( $billingAddress->getEmail() ) : ( $shippingAdress->getEmail() )
-        ];
+        $customer = [ 'identifier' => ( $isGuestCustomer ) ? ( '_' .$orderId . '_' . date('YmdHis') ) : ( '_' . $billingAddress->getCustomerId() )
+                    , 'firstName' => ( $billingAddress->getFirstname() != null ) ? ( $billingAddress->getFirstname() ) : ( $shippingAdress->getFirstname() )
+                    , 'lastName' => ( $billingAddress->getLastname() != null ) ? ( $billingAddress->getLastname() ) : ( $shippingAdress->getLastname() )
+                    , 'country' => ( $billingAddress->getCountryId() != null ) ? ( $billingAddress->getCountryId() ) : ( $shippingAdress->getCountryId() )
+                    /* , 'state' => ( $billingAddress->getRegionCode() != null )  ? ( $billingAddress->getRegionCode() ) : ( $shippingAdress->getRegionCode() ) */
+                    , 'city' => ( $billingAddress->getCity() != null ) ? ( $billingAddress->getCity() ) : ( $shippingAdress->getCity() )
+                    , 'address' => ( $billingAddress->getStreet() != null ) ? ( join(',', $billingAddress->getStreet()) )  : ( join(',', $shippingAdress->getStreet()) )
+                    , 'zipCode' => ( $billingAddress->getPostcode() != null ) ? ( preg_replace("/[^0-9]/", '', $billingAddress->getPostcode()) ) : ( preg_replace("/[^0-9]/", '', $shippingAdress->getPostcode()) )
+                    , 'phone' => ( $billingAddress->getTelephone() != null ) ? ( preg_replace("/[^0-9\+]/", '', $billingAddress->getTelephone()) ) : ( preg_replace("/[^0-9\+]/", '', $shippingAdress->getTelephone()) )
+                    , 'email' => ( $billingAddress->getEmail() != null ) ? ( $billingAddress->getEmail() ) : ( $shippingAdress->getEmail() )
+                    /* , 'tags' => [] */
+                    ];
 
         /** Extract the items details */
         $items = array();
         foreach( $order->getAllVisibleItems() as $item){
-            $items[] = [
-                'item' => $item->getName(),
-                'units' => $item->getQtyOrdered(),
-                'unitPrice' => number_format( (float)$item->getPriceInclTax(), 2)
-            ];
+          $items[] =  [ 'item' => $item->getName()
+                      , 'units' => $item->getQtyOrdered()
+                      , 'unitPrice' => number_format( (float)$item->getPriceInclTax(), 2)
+                      /* , 'type' => '' */
+                      /* , 'code' => '' */
+                      /* , 'vatProcent' => '' */
+                      /* , 'itemDescription' => '' */
+                      ];
         }
 
-        /* Calculate the backUrl through which the server will pvide the status of the order.
-         * TODO
+        /* Calculate the backUrl through which the server will provide the status of the order.
+         *** TODO ***
+         * $backUrl = get_permalink( get_page_by_path( 'twispay-confirmation' ) );
+         * $backUrl .= (FALSE == strpos($backUrl, '?')) ? ('?secure_key=' . $data['cart_hash']) : ('&secure_key=' . $data['cart_hash']);
          */
-        //$backUrl = get_permalink( get_page_by_path( 'twispay-confirmation' ) );
-        //$backUrl .= (FALSE == strpos($backUrl, '?')) ? ('?secure_key=' . $data['cart_hash']) : ('&secure_key=' . $data['cart_hash']);
 
-        $orderData = [
-            'siteId' => $siteId,
-            'customer' => $customer,
-            'order' => [
-                'orderId' => $orderId,
-                'type' => 'purchase',
-                'amount' => $order->getGrandTotal(),
-                'currency' => $order->getOrderCurrencyCode(),
-                'items' => $items
-            ],
-            'cardTransactionMode' => 'authAndCapture',
-            'invoiceEmail' => '',
-            'backUrl' => $this->getBackUrl() /** TO CHECK how is build */
-        ];
-
+        $orderData =  [ 'siteId' => $siteId
+                      , 'customer' => $customer
+                      , 'order' =>  [ 'orderId' => $orderId
+                                    , 'type' => 'purchase'
+                                    , 'amount' => $order->getGrandTotal()
+                                    , 'currency' => $order->getOrderCurrencyCode()
+                                    , 'items' => $items
+                                    /* , 'tags' => [] */
+                                    /* , 'intervalType' => '' */
+                                    /* , 'intervalValue' => 1 */
+                                    /* , 'trialAmount' => 1 */
+                                    /* , 'firstBillDate' => '' */
+                                    /* , 'level3Type' => '', */
+                                    /* , 'level3Airline' => [ 'ticketNumber' => '' */
+                                    /*                      , 'passengerName' => '' */
+                                    /*                      , 'flightNumber' => '' */
+                                    /*                      , 'departureDate' => '' */
+                                    /*                      , 'departureAirportCode' => '' */
+                                    /*                      , 'arrivalAirportCode' => '' */
+                                    /*                      , 'carrierCode' => '' */
+                                    /*                      , 'travelAgencyCode' => '' */
+                                    /*                      , 'travelAgencyName' => ''] */
+                                  ]
+                      , 'cardTransactionMode' => 'authAndCapture'
+                      /* , 'cardId' => 0 */ 
+                      , 'invoiceEmail' => ''
+                      , 'backUrl' => $this->getBackUrl()
+                      /* , 'customData' => [] */
+                      ];
 
         $this->log->info('prepareGatewayRequest orderData: ', [print_r($orderData, TRUE)]);
         /** Build the HTML form to be posted in Twispay */
         $base64JsonRequest = $this->getBase64JsonRequest($orderData);
         $base64Checksum = $this->getBase64Checksum($orderData, $secretKey);
-        //$hostName = ($this->config && (1 == $this->config->getLiveMode())) ? ('https://secure.twispay.com' . '?lang=' . $lang) : ('https://secure-stage.twispay.com' . '?lang=' . $lang);
 
-        /** NEW IMPLEMENTATION ENDS */
-
+        return $formInputsValues = [ 'jsonRequest' => $base64JsonRequest
+                                  , 'checksum' => $base64Checksum
+                                  ];
+        //LOGS $this->log->info('base64JsonRequest: ', [$base64JsonRequest]);
+        //LOGS $this->log->info('base64Checksum', [$base64Checksum]);
     }
 
     /**
